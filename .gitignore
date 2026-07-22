@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.claude/settings.local.json
+.env
+.env.*.local
+*.log
+.vite

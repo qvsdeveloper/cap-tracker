@@ -1,0 +1,17 @@
+export const COLORS = {
+  capBlue: '#0D2B55',
+  capGold: '#C9A227',
+  background: '#f0f4f8',
+  card: '#ffffff',
+  pipelineDone: '#22c55e',
+  pipelineNext: '#f59e0b',
+  pipelinePending: '#e2e8f0',
+  hot: '#ef4444',
+  warm: '#f59e0b',
+  cooling: '#94a3b8',
+  cold: '#3b82f6',
+  danger: '#dc2626',
+  text: '#1e293b',
+  textMuted: '#64748b',
+  border: '#e2e8f0',
+};
