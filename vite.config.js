@@ -4,6 +4,12 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   base: '/cap-tracker/',
+  server: {
+    // Listen on the LAN so a real iPhone on the same WiFi can load the dev
+    // server directly (Settings > WiFi > (i) on the phone to find the Mac's
+    // address, or just use the "Network:" URL vite prints on startup).
+    host: true,
+  },
   plugins: [
     react(),
     VitePWA({

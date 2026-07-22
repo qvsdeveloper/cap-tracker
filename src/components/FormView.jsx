@@ -86,7 +86,7 @@ export default function FormView({ cadet, onSave, onCancel, onDelete }) {
         style={{
           background: COLORS.capBlue,
           color: '#fff',
-          padding: '16px 16px 14px',
+          padding: 'calc(16px + var(--safe-area-top)) 16px 14px',
           position: 'sticky',
           top: 0,
           zIndex: 10,
