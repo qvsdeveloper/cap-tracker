@@ -33,7 +33,7 @@ export default function ConfirmModal({
           maxWidth: 480,
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
-          padding: '24px 20px calc(20px + env(safe-area-inset-bottom))',
+          padding: '24px 20px calc(20px + var(--safe-area-bottom))',
           boxShadow: '0 -4px 24px rgba(0,0,0,0.2)',
         }}
         onClick={(e) => e.stopPropagation()}

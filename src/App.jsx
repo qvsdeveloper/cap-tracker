@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { COLORS } from './styles/colors.js';
 import Header from './components/Header.jsx';
+import TabBar from './components/TabBar.jsx';
 import ListView from './components/ListView.jsx';
 import DetailView from './components/DetailView.jsx';
 import FormView from './components/FormView.jsx';
@@ -159,11 +160,13 @@ export default function App() {
     <div style={{ minHeight: '100vh', background: COLORS.background, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       {view === 'list' && (
         <>
-          <Header activeCount={activeCount} syncStatus={syncStatus} onOpenSettings={() => setView('settings')} />
+          <div style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+            <Header activeCount={activeCount} syncStatus={syncStatus} onOpenSettings={() => setView('settings')} />
+            <TabBar tab={tab} onChange={setTab} />
+          </div>
           <ListView
             cadets={cadets}
             tab={tab}
-            onChangeTab={setTab}
             onSelectCadet={handleSelectCadet}
             onAddNew={handleAddNew}
           />

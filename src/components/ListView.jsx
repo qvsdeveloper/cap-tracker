@@ -1,10 +1,9 @@
 import { COLORS } from '../styles/colors.js';
 import CadetCard from './CadetCard.jsx';
 import ContactRow from './ContactRow.jsx';
-import TabBar from './TabBar.jsx';
 import { sortActiveCadets } from '../utils/pipeline.js';
 
-export default function ListView({ cadets, tab, onChangeTab, onSelectCadet, onAddNew }) {
+export default function ListView({ cadets, tab, onSelectCadet, onAddNew }) {
   const active = sortActiveCadets(cadets.filter((c) => c.status === 'Active'));
   const archived = cadets
     .filter((c) => c.status === 'Joined' || c.status === 'Withdrew')
@@ -34,7 +33,6 @@ export default function ListView({ cadets, tab, onChangeTab, onSelectCadet, onAd
 
   return (
     <div>
-      <TabBar tab={tab} onChange={onChangeTab} />
       <div
         style={{
           padding: '16px 16px 100px',
@@ -50,7 +48,7 @@ export default function ListView({ cadets, tab, onChangeTab, onSelectCadet, onAd
           style={{
             position: 'fixed',
             right: 20,
-            bottom: 'calc(20px + env(safe-area-inset-bottom))',
+            bottom: 'calc(20px + var(--safe-area-bottom))',
             width: 56,
             height: 56,
             borderRadius: '50%',

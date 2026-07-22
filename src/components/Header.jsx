@@ -6,13 +6,10 @@ export default function Header({ activeCount, syncStatus, onOpenSettings }) {
       style={{
         background: COLORS.capBlue,
         color: '#fff',
-        padding: '16px 16px 12px',
+        padding: 'calc(12px + var(--safe-area-top)) 16px 12px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
       }}
     >
       <div>

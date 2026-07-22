@@ -13,9 +13,6 @@ export default function TabBar({ tab, onChange }) {
         display: 'flex',
         background: COLORS.card,
         borderBottom: `1px solid ${COLORS.border}`,
-        position: 'sticky',
-        top: 64,
-        zIndex: 9,
       }}
     >
       {TABS.map((t) => {
