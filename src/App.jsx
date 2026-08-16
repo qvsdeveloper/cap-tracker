@@ -186,6 +186,7 @@ export default function App() {
       {view === 'form' && (
         <FormView
           cadet={selectedCadet}
+          settings={settings}
           onSave={handleSaveForm}
           onCancel={() => setView(selectedCadet ? 'detail' : 'list')}
           onDelete={selectedCadet ? handleDeleteCadet : null}
