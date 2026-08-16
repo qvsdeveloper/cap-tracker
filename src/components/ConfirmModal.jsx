@@ -5,6 +5,7 @@ export default function ConfirmModal({
   title,
   subtitle,
   confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
   tone = 'default',
   onConfirm,
   onCancel,
@@ -65,7 +66,7 @@ export default function ConfirmModal({
               fontWeight: 600,
             }}
           >
-            Cancel
+            {cancelLabel}
           </button>
           <button
             onClick={onConfirm}

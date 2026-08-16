@@ -1,6 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { COLORS } from '../styles/colors.js';
-import { fetchFromSheets, exportDataToClipboard, parseImportPayload } from '../utils/storage.js';
+import {
+  fetchFromSheets,
+  exportDataToClipboard,
+  parseImportPayload,
+  downloadSettingsFile,
+  parseSettingsPayload,
+} from '../utils/storage.js';
 import ConfirmModal from './ConfirmModal.jsx';
 import sheetsScriptSource from '../../scripts/google-sheets-sync.gs?raw';
 
@@ -13,6 +19,9 @@ export default function SettingsView({ settings, cadets, onSave, onClose, onImpo
   const [confirmImport, setConfirmImport] = useState(false);
   const [sheetsHelpOpen, setSheetsHelpOpen] = useState(false);
   const [scriptCopyStatus, setScriptCopyStatus] = useState(null);
+  const [settingsBackupStatus, setSettingsBackupStatus] = useState(null);
+  const [settingsRestoreStatus, setSettingsRestoreStatus] = useState(null);
+  const restoreFileInputRef = useRef(null);
 
   function set(field, value) {
     setDraft((prev) => ({ ...prev, [field]: value }));
@@ -40,6 +49,33 @@ export default function SettingsView({ settings, cadets, onSave, onClose, onImpo
     } catch (err) {
       setScriptCopyStatus(`Copy failed: ${err.message}`);
     }
+  }
+
+  function handleBackupSettings() {
+    try {
+      downloadSettingsFile(draft);
+      setSettingsBackupStatus('Downloaded!');
+    } catch (err) {
+      setSettingsBackupStatus(`Download failed: ${err.message}`);
+    }
+  }
+
+  function handleRestoreSettingsFile(e) {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const restored = parseSettingsPayload(reader.result);
+        setDraft((prev) => ({ ...prev, ...restored }));
+        setSettingsRestoreStatus('Restored — review below, then tap Save to apply.');
+      } catch (err) {
+        setSettingsRestoreStatus(`Restore failed: ${err.message}`);
+      }
+    };
+    reader.onerror = () => setSettingsRestoreStatus('Restore failed: could not read file.');
+    reader.readAsText(file);
   }
 
   async function handleExport() {
@@ -158,7 +194,7 @@ export default function SettingsView({ settings, cadets, onSave, onClose, onImpo
             </>
           )}
           <Input label="Apps Script Web App URL" value={draft.sheetsUrl} onChange={(v) => set('sheetsUrl', v)} mono />
-          <Input label="API Token" value={draft.sheetsToken} onChange={(v) => set('sheetsToken', v)} mono />
+          <Input label="API Token" value={draft.sheetsToken} onChange={(v) => set('sheetsToken', v)} type="password" mono />
           <button onClick={handleTestConnection} style={secondaryButtonStyle}>
             🔌 Test Connection
           </button>
@@ -173,6 +209,39 @@ export default function SettingsView({ settings, cadets, onSave, onClose, onImpo
               {testStatus.loading ? 'Testing…' : testStatus.message}
             </div>
           )}
+        </Section>
+
+        <Section title="⚙️ Settings Backup">
+          <button onClick={handleBackupSettings} style={secondaryButtonStyle}>
+            💾 Backup Settings to JSON File
+          </button>
+          {settingsBackupStatus && (
+            <div style={{ marginTop: 8, fontSize: 13, color: COLORS.textMuted }}>{settingsBackupStatus}</div>
+          )}
+
+          <div style={{ marginTop: 16 }}>
+            <input
+              ref={restoreFileInputRef}
+              type="file"
+              accept="application/json"
+              onChange={handleRestoreSettingsFile}
+              style={{ display: 'none' }}
+            />
+            <button onClick={() => restoreFileInputRef.current?.click()} style={secondaryButtonStyle}>
+              📥 Restore Settings from JSON File
+            </button>
+            {settingsRestoreStatus && (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 13,
+                  color: settingsRestoreStatus.startsWith('Restore failed') ? COLORS.danger : COLORS.textMuted,
+                }}
+              >
+                {settingsRestoreStatus}
+              </div>
+            )}
+          </div>
         </Section>
 
         <Section title="🛡️ Data Backup & Restore">

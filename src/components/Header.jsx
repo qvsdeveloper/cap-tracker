@@ -1,6 +1,6 @@
 import { COLORS } from '../styles/colors.js';
 
-export default function Header({ activeCount, syncStatus, onOpenSettings }) {
+export default function Header({ activeCount, syncStatus, onOpenSettings, onSyncClick }) {
   return (
     <div
       style={{
@@ -19,9 +19,23 @@ export default function Header({ activeCount, syncStatus, onOpenSettings }) {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <span title={syncStatus.label} style={{ fontSize: 18, opacity: syncStatus.syncing ? 0.6 : 1 }}>
+        <button
+          onClick={onSyncClick}
+          title={`${syncStatus.label} — tap to pull latest from Google Sheets`}
+          aria-label="Sync"
+          disabled={syncStatus.syncing}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#fff',
+            fontSize: 18,
+            padding: 4,
+            lineHeight: 1,
+            opacity: syncStatus.syncing ? 0.6 : 1,
+          }}
+        >
           {syncStatus.icon}
-        </span>
+        </button>
         <button
           onClick={onOpenSettings}
           aria-label="Settings"
