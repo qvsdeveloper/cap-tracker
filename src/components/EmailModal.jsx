@@ -20,9 +20,9 @@ export default function EmailModal({
     navigator.clipboard.writeText(fullText);
   };
 
-  const mailtoHref = `mailto:${encodeURIComponent(parentEmail || '')}${
-    cc ? `?cc=${encodeURIComponent(cc)}&` : '?'
-  }subject=${encodeURIComponent(subject || '')}&body=${encodeURIComponent(body || '')}`;
+  const gmailHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(parentEmail || '')}${
+    cc ? `&cc=${encodeURIComponent(cc)}` : ''
+  }&su=${encodeURIComponent(subject || '')}&body=${encodeURIComponent(body || '')}`;
 
   return (
     <div
@@ -129,7 +129,9 @@ export default function EmailModal({
                 📋 Copy
               </button>
               <a
-                href={mailtoHref}
+                href={gmailHref}
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
                   flex: 1,
                   padding: '14px 0',
@@ -144,7 +146,7 @@ export default function EmailModal({
                   boxSizing: 'border-box',
                 }}
               >
-                📧 Open in Mail
+                📧 Open in Gmail
               </a>
             </div>
           </>

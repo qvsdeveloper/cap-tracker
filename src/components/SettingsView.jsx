@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { COLORS } from '../styles/colors.js';
 import { fetchFromSheets, exportDataToClipboard, parseImportPayload } from '../utils/storage.js';
 import ConfirmModal from './ConfirmModal.jsx';
+import sheetsScriptSource from '../../scripts/google-sheets-sync.gs?raw';
 
 export default function SettingsView({ settings, cadets, onSave, onClose, onImport }) {
   const [draft, setDraft] = useState({ ...settings });
@@ -10,6 +11,8 @@ export default function SettingsView({ settings, cadets, onSave, onClose, onImpo
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState(null);
   const [confirmImport, setConfirmImport] = useState(false);
+  const [sheetsHelpOpen, setSheetsHelpOpen] = useState(false);
+  const [scriptCopyStatus, setScriptCopyStatus] = useState(null);
 
   function set(field, value) {
     setDraft((prev) => ({ ...prev, [field]: value }));
@@ -27,6 +30,15 @@ export default function SettingsView({ settings, cadets, onSave, onClose, onImpo
       setTestStatus({ ok: true, message: `Connected. Found ${data.length} record${data.length === 1 ? '' : 's'}.` });
     } catch (err) {
       setTestStatus({ ok: false, message: err.message });
+    }
+  }
+
+  async function handleCopyScript() {
+    try {
+      await navigator.clipboard.writeText(sheetsScriptSource);
+      setScriptCopyStatus('Copied! Paste it into the Apps Script editor.');
+    } catch (err) {
+      setScriptCopyStatus(`Copy failed: ${err.message}`);
     }
   }
 
@@ -117,6 +129,34 @@ export default function SettingsView({ settings, cadets, onSave, onClose, onImpo
         </Section>
 
         <Section title="☁️ Google Sheets Sync">
+          <button
+            onClick={() => setSheetsHelpOpen((v) => !v)}
+            style={{ ...secondaryButtonStyle, marginBottom: 12 }}
+          >
+            {sheetsHelpOpen ? '▲ Hide setup instructions' : 'ℹ️ How do I set this up?'}
+          </button>
+          {sheetsHelpOpen && (
+            <>
+              <ol style={{ fontSize: 13, color: COLORS.textMuted, margin: '0 0 10px', paddingLeft: 18, lineHeight: 1.6 }}>
+                <li>Create a Google Sheet (any name — a "Cadets" tab is added automatically).</li>
+                <li>In the Sheet: Extensions → Apps Script.</li>
+                <li>Delete the placeholder code, then use the button below to copy the setup script and paste it in.</li>
+                <li>Run the <code>setup</code> function once (Run menu → select "setup" → Run) and approve the permissions prompt.</li>
+                <li>Check View → Logs for the generated API token and copy it.</li>
+                <li>
+                  Deploy → New deployment → type "Web app". Set Execute as: <b>Me</b>, Who has access: <b>Anyone</b>. Deploy
+                  and copy the Web app URL.
+                </li>
+                <li>Paste the URL and token into the fields below, then tap "Test Connection".</li>
+              </ol>
+              <button onClick={handleCopyScript} style={{ ...secondaryButtonStyle, marginBottom: 4 }}>
+                📋 Copy setup script to clipboard
+              </button>
+              {scriptCopyStatus && (
+                <div style={{ marginTop: 8, marginBottom: 12, fontSize: 13, color: COLORS.textMuted }}>{scriptCopyStatus}</div>
+              )}
+            </>
+          )}
           <Input label="Apps Script Web App URL" value={draft.sheetsUrl} onChange={(v) => set('sheetsUrl', v)} mono />
           <Input label="API Token" value={draft.sheetsToken} onChange={(v) => set('sheetsToken', v)} mono />
           <button onClick={handleTestConnection} style={secondaryButtonStyle}>

@@ -109,3 +109,41 @@ export function parseGeneratedEmail(raw) {
   }
   return { subject: '', body: raw.trim() };
 }
+
+const EXTRACT_FIELDS = ['firstName', 'lastName', 'age', 'grade', 'parentName', 'parentEmail', 'parentPhone', 'notes'];
+
+export function buildExtractCadetPrompt(emailText) {
+  return [
+    'Extract prospective-cadet information from the email below for a Civil Air Patrol squadron.',
+    'Return ONLY a JSON object (no markdown, no commentary) with exactly this shape,',
+    'using "" for any field you cannot find -- never invent information that is not in the email:',
+    '{',
+    '  "firstName": "",',
+    '  "lastName": "",',
+    '  "age": "",',
+    '  "grade": "",',
+    '  "parentName": "",',
+    '  "parentEmail": "",',
+    '  "parentPhone": "",',
+    '  "notes": ""',
+    '}',
+    '"notes" should be a brief 1-2 sentence summary of anything relevant (interests, availability,',
+    'questions asked) that does not fit the other fields. Leave it "" if there is nothing extra.',
+    '',
+    'Email:',
+    '"""',
+    emailText.trim(),
+    '"""',
+  ].join('\n');
+}
+
+export function parseExtractedCadet(raw) {
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('AI response did not contain the expected JSON.');
+  const data = JSON.parse(match[0]);
+  const result = {};
+  for (const key of EXTRACT_FIELDS) {
+    if (typeof data[key] === 'string' && data[key].trim()) result[key] = data[key].trim();
+  }
+  return result;
+}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { COLORS } from '../styles/colors.js';
 import { PIPELINE_STEPS } from '../utils/pipeline.js';
 import { makeId } from '../utils/storage.js';
+import { buildExtractCadetPrompt, generateEmail, parseExtractedCadet } from '../utils/email.js';
 import ConfirmModal from './ConfirmModal.jsx';
 
 // Defined outside FormView so React never remounts it on FormView re-render —
@@ -68,9 +69,13 @@ function blankCadet() {
   };
 }
 
-export default function FormView({ cadet, onSave, onCancel, onDelete }) {
+export default function FormView({ cadet, settings, onSave, onCancel, onDelete }) {
   const [draft, setDraft] = useState(() => (cadet ? { ...cadet } : blankCadet()));
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [pasteLoading, setPasteLoading] = useState(false);
+  const [pasteError, setPasteError] = useState('');
 
   function set(field, value) {
     setDraft((prev) => ({ ...prev, [field]: value }));
@@ -78,6 +83,34 @@ export default function FormView({ cadet, onSave, onCancel, onDelete }) {
 
   function handleSave() {
     onSave(draft);
+  }
+
+  async function handleExtractFromEmail() {
+    if (!pasteText.trim()) return;
+    setPasteLoading(true);
+    setPasteError('');
+    try {
+      const raw = await generateEmail(buildExtractCadetPrompt(pasteText), settings?.anthropicApiKey);
+      const extracted = parseExtractedCadet(raw);
+      setDraft((prev) => {
+        const next = { ...prev };
+        for (const [key, value] of Object.entries(extracted)) {
+          if (key === 'notes') {
+            const entry = `[from pasted email] ${value}`;
+            next.notes = next.notes ? `${next.notes}\n${entry}` : entry;
+          } else if (!next[key]) {
+            next[key] = value;
+          }
+        }
+        return next;
+      });
+      setPasteOpen(false);
+      setPasteText('');
+    } catch (err) {
+      setPasteError(err.message);
+    } finally {
+      setPasteLoading(false);
+    }
   }
 
   return (
@@ -105,6 +138,85 @@ export default function FormView({ cadet, onSave, onCancel, onDelete }) {
       </div>
 
       <div style={{ padding: 16 }}>
+        <Section title="Quick Fill">
+          {!pasteOpen ? (
+            <button
+              onClick={() => setPasteOpen(true)}
+              style={{
+                width: '100%',
+                padding: '12px 0',
+                borderRadius: 10,
+                border: `1px solid ${COLORS.border}`,
+                background: '#fff',
+                color: COLORS.text,
+                fontSize: 14,
+                fontWeight: 600,
+              }}
+            >
+              📋 Paste Email to Auto-Fill
+            </button>
+          ) : (
+            <>
+              <textarea
+                autoFocus
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                placeholder="Paste the parent's email here..."
+                rows={6}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  fontSize: 14,
+                  padding: '12px 14px',
+                  borderRadius: 10,
+                  border: `1px solid ${COLORS.border}`,
+                  fontFamily: 'inherit',
+                }}
+              />
+              {pasteError && (
+                <div style={{ color: COLORS.danger, fontSize: 13, marginTop: 8 }}>{pasteError}</div>
+              )}
+              <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+                <button
+                  onClick={handleExtractFromEmail}
+                  disabled={pasteLoading || !pasteText.trim()}
+                  style={{
+                    flex: 1,
+                    padding: '12px 0',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: COLORS.capBlue,
+                    color: '#fff',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    opacity: pasteLoading || !pasteText.trim() ? 0.6 : 1,
+                  }}
+                >
+                  {pasteLoading ? 'Extracting…' : '✨ Extract Info'}
+                </button>
+                <button
+                  onClick={() => {
+                    setPasteOpen(false);
+                    setPasteText('');
+                    setPasteError('');
+                  }}
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: 10,
+                    border: `1px solid ${COLORS.border}`,
+                    background: '#fff',
+                    color: COLORS.text,
+                    fontSize: 14,
+                    fontWeight: 600,
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          )}
+        </Section>
+
         <Section title="Cadet Info">
           <FormField label="First Name" value={draft.firstName} onChange={(v) => set('firstName', v)} />
           <FormField label="Last Name" value={draft.lastName} onChange={(v) => set('lastName', v)} />
