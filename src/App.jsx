@@ -6,6 +6,7 @@ import ListView from './components/ListView.jsx';
 import DetailView from './components/DetailView.jsx';
 import FormView from './components/FormView.jsx';
 import SettingsView from './components/SettingsView.jsx';
+import ConfirmModal from './components/ConfirmModal.jsx';
 import {
   loadSettings,
   saveSettings as persistSettings,
@@ -23,8 +24,12 @@ export default function App() {
   const [tab, setTab] = useState('active');
   const [selectedId, setSelectedId] = useState(null);
   const [syncStatus, setSyncStatus] = useState({ icon: '💾', label: 'Local only', syncing: false });
+  const [syncConflict, setSyncConflict] = useState(null);
 
   const hasLoaded = useRef(false);
+  // JSON snapshot of the cadet list as last known to match the Sheet.
+  // Null means "no known baseline yet" (nothing pulled/pushed since load).
+  const lastSyncedSnapshotRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,6 +39,11 @@ export default function App() {
       setCadets(loaded);
       setLoading(false);
       hasLoaded.current = true;
+      // 'local-to-sheets' means the sheet was empty and this local data still
+      // needs to be pushed up, so leave the baseline null to let that happen.
+      if (source === 'sheets') {
+        lastSyncedSnapshotRef.current = JSON.stringify(loaded);
+      }
       setSyncStatus(
         source === 'sheets' || source === 'local-to-sheets'
           ? { icon: '☁️', label: 'Synced with Google Sheets', syncing: false }
@@ -50,17 +60,74 @@ export default function App() {
   useEffect(() => {
     if (!hasLoaded.current) return;
     saveCadetsLocal(cadets);
-    if (settings.sheetsUrl) {
-      setSyncStatus({ icon: '☁️', label: 'Syncing…', syncing: true });
-      saveCadetsToSheets(cadets, settings).then((result) => {
-        setSyncStatus(
-          result.ok
-            ? { icon: '☁️', label: 'Synced with Google Sheets', syncing: false }
-            : { icon: '⚠️', label: `Sync failed: ${result.error}`, syncing: false }
-        );
-      });
+    if (settings.sheetsUrl && JSON.stringify(cadets) !== lastSyncedSnapshotRef.current) {
+      syncCadetsToSheets(cadets);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cadets]);
+
+  // Checks the Sheet hasn't changed since our last known-good snapshot before
+  // overwriting it, so a stale device (e.g. one that's been open a while on
+  // another phone) can't silently clobber changes made elsewhere.
+  async function syncCadetsToSheets(currentCadets) {
+    setSyncStatus({ icon: '☁️', label: 'Syncing…', syncing: true });
+    try {
+      const remote = await fetchFromSheets(settings.sheetsUrl, settings.sheetsToken);
+      const remoteJson = JSON.stringify(remote);
+      const baseline = lastSyncedSnapshotRef.current;
+      if (baseline !== null && remoteJson !== baseline) {
+        setSyncConflict({ remote });
+        setSyncStatus({ icon: '⚠️', label: 'Sync paused — conflict detected', syncing: false });
+        return;
+      }
+      const result = await saveCadetsToSheets(currentCadets, settings);
+      if (result.ok) {
+        lastSyncedSnapshotRef.current = JSON.stringify(currentCadets);
+        setSyncStatus({ icon: '☁️', label: 'Synced with Google Sheets', syncing: false });
+      } else {
+        setSyncStatus({ icon: '⚠️', label: `Sync failed: ${result.error}`, syncing: false });
+      }
+    } catch (err) {
+      setSyncStatus({ icon: '⚠️', label: `Sync failed: ${err.message}`, syncing: false });
+    }
+  }
+
+  async function handlePullFromSheets() {
+    if (!settings.sheetsUrl) {
+      setView('settings');
+      return;
+    }
+    setSyncStatus({ icon: '☁️', label: 'Refreshing…', syncing: true });
+    try {
+      const remote = await fetchFromSheets(settings.sheetsUrl, settings.sheetsToken);
+      setCadets(remote);
+      lastSyncedSnapshotRef.current = JSON.stringify(remote);
+      setSyncStatus({ icon: '☁️', label: 'Synced with Google Sheets', syncing: false });
+    } catch (err) {
+      setSyncStatus({ icon: '⚠️', label: `Refresh failed: ${err.message}`, syncing: false });
+    }
+  }
+
+  async function handleKeepMyChanges() {
+    const toSave = cadets;
+    setSyncConflict(null);
+    setSyncStatus({ icon: '☁️', label: 'Syncing…', syncing: true });
+    const result = await saveCadetsToSheets(toSave, settings);
+    if (result.ok) {
+      lastSyncedSnapshotRef.current = JSON.stringify(toSave);
+      setSyncStatus({ icon: '☁️', label: 'Synced with Google Sheets', syncing: false });
+    } else {
+      setSyncStatus({ icon: '⚠️', label: `Sync failed: ${result.error}`, syncing: false });
+    }
+  }
+
+  function handleLoadTheirChanges() {
+    const remote = syncConflict.remote;
+    setSyncConflict(null);
+    setCadets(remote);
+    lastSyncedSnapshotRef.current = JSON.stringify(remote);
+    setSyncStatus({ icon: '☁️', label: 'Synced with Google Sheets', syncing: false });
+  }
 
   function upsertCadet(cadet) {
     setCadets((prev) => {
@@ -111,10 +178,12 @@ export default function App() {
         const remote = await fetchFromSheets(newSettings.sheetsUrl, newSettings.sheetsToken);
         if (remote.length > 0) {
           setCadets(remote);
+          lastSyncedSnapshotRef.current = JSON.stringify(remote);
           setSyncStatus({ icon: '☁️', label: 'Synced with Google Sheets', syncing: false });
         } else {
           // Sheet reachable but empty: push what we have up to it.
           const result = await saveCadetsToSheets(cadets, newSettings);
+          if (result.ok) lastSyncedSnapshotRef.current = JSON.stringify(cadets);
           setSyncStatus(
             result.ok
               ? { icon: '☁️', label: 'Synced with Google Sheets', syncing: false }
@@ -161,7 +230,12 @@ export default function App() {
       {view === 'list' && (
         <>
           <div style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-            <Header activeCount={activeCount} syncStatus={syncStatus} onOpenSettings={() => setView('settings')} />
+            <Header
+              activeCount={activeCount}
+              syncStatus={syncStatus}
+              onOpenSettings={() => setView('settings')}
+              onSyncClick={handlePullFromSheets}
+            />
             <TabBar tab={tab} onChange={setTab} />
           </div>
           <ListView
@@ -202,6 +276,17 @@ export default function App() {
           onImport={handleImportData}
         />
       )}
+
+      <ConfirmModal
+        open={!!syncConflict}
+        title="Sync conflict"
+        subtitle="The Google Sheet changed since this device last synced — probably an edit from another device. Loading the other version will discard the changes you just made here."
+        confirmLabel="Keep My Changes (Overwrite)"
+        cancelLabel="Load Their Changes"
+        tone="danger"
+        onConfirm={handleKeepMyChanges}
+        onCancel={handleLoadTheirChanges}
+      />
     </div>
   );
 }
