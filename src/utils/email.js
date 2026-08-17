@@ -10,9 +10,9 @@ function cadetLabel(cadet) {
 }
 
 export function buildWelcomeEmailPrompt(cadet, settings) {
+  const signoff = settings.senderSignoff || 'the squadron recruiting contact';
   const lines = [
-    'Write a warm welcome email FROM [REDACTED SENDER] (Key Parent & Transportation Officer,',
-    '[REDACTED SQUADRON], [REDACTED ORG], [REDACTED WING])',
+    `Write a warm welcome email FROM ${signoff}`,
     'TO the parent/guardian of a prospective cadet.',
     '',
     `Cadet: ${cadetLabel(cadet)}`,
@@ -25,10 +25,10 @@ export function buildWelcomeEmailPrompt(cadet, settings) {
   lines.push(
     '',
     'Write 3-4 short paragraphs covering:',
-    '- Thank them for their interest in CAP',
-    '- CAP is the official [REDACTED ORG]: aerospace education, leadership, service',
-    '- Tuesday evening meetings at [REDACTED LOCATION]',
-    '- 3-meeting process before officially joining',
+    '- Thank them for their interest in the program',
+    '- Briefly convey what the program offers (leadership, service, hands-on activities)',
+    '- Reference the upcoming schedule above for meeting info',
+    '- Explain there is a multi-meeting process before officially joining',
     '- Warm encouragement to keep attending'
   );
   if (settings.welcomeExtra) {
@@ -36,16 +36,16 @@ export function buildWelcomeEmailPrompt(cadet, settings) {
   }
   lines.push(
     '',
-    'Sign off: [REDACTED SENDER] | Key Parent, [REDACTED SQUADRON] ([REDACTED])',
+    `Sign off: ${signoff}`,
     'Output ONLY the email. Start with "Subject: ..." then blank line then body.'
   );
   return lines.join('\n');
 }
 
 export function buildThirdNightEmailPrompt(cadet, settings) {
+  const signoff = settings.senderSignoff || 'the squadron recruiting contact';
   const lines = [
-    'Write an encouraging email FROM [REDACTED SENDER] (Key Parent & Transportation Officer,',
-    '[REDACTED SQUADRON], [REDACTED ORG], [REDACTED WING])',
+    `Write an encouraging email FROM ${signoff}`,
     'TO the parent/guardian of a prospective cadet ready to officially join.',
     '',
     `Cadet: ${cadetLabel(cadet)}`,
@@ -60,8 +60,7 @@ export function buildThirdNightEmailPrompt(cadet, settings) {
     'Write 3-4 short paragraphs covering:',
     `- Celebrate attending ${getMeetingCount(cadet)} meetings -- almost official!`,
     '- Next meeting is Join Night',
-    '- Need [REDACTED FORM] ([REDACTED FORM]) from [REDACTED URL] -- parent must sign',
-    '- $25 annual membership fee at [REDACTED URL]',
+    '- Mention any required paperwork or fees (see additional instructions below)',
     '- Genuine excitement about them joining'
   );
   if (settings.thirdNightExtra) {
@@ -69,7 +68,7 @@ export function buildThirdNightEmailPrompt(cadet, settings) {
   }
   lines.push(
     '',
-    'Sign off: [REDACTED SENDER] | Key Parent, [REDACTED SQUADRON] ([REDACTED])',
+    `Sign off: ${signoff}`,
     'Output ONLY the email. Start with "Subject: ..." then blank line then body.'
   );
   return lines.join('\n');
@@ -114,7 +113,7 @@ const EXTRACT_FIELDS = ['firstName', 'lastName', 'age', 'grade', 'parentName', '
 
 export function buildExtractCadetPrompt(emailText) {
   return [
-    'Extract prospective-cadet information from the email below for a [REDACTED ORG] squadron.',
+    'Extract prospective-cadet information from the email below for a youth squadron program.',
     'Return ONLY a JSON object (no markdown, no commentary) with exactly this shape,',
     'using "" for any field you cannot find -- never invent information that is not in the email:',
     '{',
