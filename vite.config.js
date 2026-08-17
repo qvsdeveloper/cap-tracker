@@ -16,9 +16,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'CAP Prospect Tracker',
-        short_name: 'CAP Tracker',
-        description: 'Quakertown Composite Squadron NER-PA-035 prospective cadet tracker',
+        name: "Andy's Cap Tracker",
+        short_name: 'Cap Tracker',
+        description: 'Prospective cadet recruiting tracker',
         theme_color: '#0D2B55',
         background_color: '#0D2B55',
         display: 'standalone',

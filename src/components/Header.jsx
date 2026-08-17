@@ -13,7 +13,7 @@ export default function Header({ activeCount, syncStatus, onOpenSettings, onSync
       }}
     >
       <div>
-        <div style={{ fontSize: 17, fontWeight: 700 }}>Quakertown Composite Squadron</div>
+        <div style={{ fontSize: 17, fontWeight: 700 }}>Andy's Cap Tracker</div>
         <div style={{ fontSize: 12, color: COLORS.capGold, marginTop: 2 }}>
           {activeCount} active prospect{activeCount === 1 ? '' : 's'}
         </div>

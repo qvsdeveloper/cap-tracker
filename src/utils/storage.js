@@ -5,6 +5,7 @@ export const CADETS_BACKUP_KEY = 'cap-cadets-backup';
 export const SETTINGS_KEY = 'cap-settings-v1';
 
 export const DEFAULT_SETTINGS = {
+  senderSignoff: '',
   welcomeCc: '',
   welcomeExtra: '',
   thirdNightCc: '',

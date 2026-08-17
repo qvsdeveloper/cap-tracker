@@ -130,6 +130,15 @@ export default function SettingsView({ settings, cadets, onSave, onClose, onImpo
           v{appVersion}
         </div>
 
+        <Section title="✍️ Sender Sign-off">
+          <TextArea
+            value={draft.senderSignoff}
+            onChange={(v) => set('senderSignoff', v)}
+            placeholder="Who AI-generated emails are from, e.g. your name, role, and squadron — used to open and sign every email"
+            rows={2}
+          />
+        </Section>
+
         <Section title="📅 Squadron Schedule">
           <TextArea
             value={draft.squadronSchedule}

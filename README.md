@@ -1,4 +1,35 @@
-# cap-tracker
+# Andy's Cap Tracker
+
+A mobile-first PWA for tracking prospective cadets through a squadron
+recruiting pipeline (first contact → welcome email → meetings → 3rd night
+email → joined). Sender identity and squadron-specific details are entered
+in-app (Settings) rather than hardcoded, so the source stays
+organization-agnostic.
+
+## Tech Stack & Style
+
+- **Plain JavaScript + JSX** — no TypeScript. ES modules, built with
+  [Vite](https://vitejs.dev/). React 18 is the only real runtime dependency;
+  [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/) adds offline support
+  and installability.
+- **Functional components + hooks only** — no classes, no Redux/context
+  libraries. State lives mostly in `App.jsx` and is passed down as props to
+  small, single-purpose components.
+- **Inline styles everywhere** — every component uses `style={{...}}` object
+  literals directly. No CSS framework and no CSS Modules; `src/index.css`
+  only holds global resets and iOS safe-area variables, and
+  `src/styles/colors.js` is the one shared design-token file.
+- **No component library** — buttons, modals, and inputs are hand-rolled
+  (see `ConfirmModal.jsx`, or the `Input`/`TextArea` helpers inside
+  `SettingsView.jsx`).
+- **Small, flat `utils/` modules** — pure functions grouped by concern
+  (`pipeline.js` for cadet-status logic, `storage.js` for persistence/sync,
+  `email.js` for AI prompt building).
+- **No test suite, no linter/formatter config, no TypeScript** —
+  consistency comes from following the existing patterns, not tooling.
+
+Overall it's intentionally lightweight and dependency-minimal — closer to a
+single developer's focused tool than a scaffolded enterprise React app.
 
 ## Google Sheets Sync
 
