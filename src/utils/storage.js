@@ -24,8 +24,36 @@ export function makeId() {
 // migration, so it never clobbers a change the user made afterward.
 const MIGRATIONS = [];
 
+const DATE_FIELDS = [
+  'firstContactDate',
+  'welcomeEmailSent',
+  'meeting1Date',
+  'meeting2Date',
+  'thirdNightEmailSent',
+  'meeting3Date',
+  'archivedDate',
+  'lastTouched',
+];
+
+// Google Sheets can auto-convert a plain "YYYY-MM-DD" string into a real
+// Date cell, which comes back as a full ISO timestamp. Truncate any
+// oversized date field back to YYYY-MM-DD so <input type="date"> and the
+// day-count math both keep working regardless of where the data came from.
+function sanitizeCadetDates(cadet) {
+  let changed = false;
+  const next = { ...cadet };
+  for (const field of DATE_FIELDS) {
+    const value = next[field];
+    if (typeof value === 'string' && value.length > 10) {
+      next[field] = value.slice(0, 10);
+      changed = true;
+    }
+  }
+  return changed ? next : cadet;
+}
+
 export function applyMigrations(cadets) {
-  let result = cadets;
+  let result = cadets.map(sanitizeCadetDates);
   for (const migration of MIGRATIONS) {
     result = result.map((cadet) => {
       const match = cadet.id === migration.id && cadet.status === migration.expectedStatus;

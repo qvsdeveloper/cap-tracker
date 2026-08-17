@@ -51,6 +51,18 @@ function jsonOutput(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+// Sheets silently reinterprets plain-looking date strings (e.g. "2026-08-13")
+// as real Date cells on write. Reading one back gives a JS Date object, which
+// JSON.stringify turns into a full timestamp -- not the plain YYYY-MM-DD the
+// app expects. Normalize any Date cell back to YYYY-MM-DD here so old rows
+// that already got auto-converted self-heal on the next read.
+function normalizeCell(value) {
+  if (Object.prototype.toString.call(value) === '[object Date]') {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return value;
+}
+
 function doGet(e) {
   const token = e.parameter.token || '';
   if (!checkToken(token)) return jsonOutput({ error: 'Invalid token' });
@@ -63,7 +75,7 @@ function doGet(e) {
   const rows = values.slice(1).map((row) => {
     const obj = {};
     headers.forEach((key, i) => {
-      if (key) obj[key] = row[i];
+      if (key) obj[key] = normalizeCell(row[i]);
     });
     return obj;
   });
@@ -100,6 +112,10 @@ function doPost(e) {
   if (headers.length === 0) return jsonOutput({ ok: true, rows: 0 });
 
   const rows = records.map((record) => headers.map((key) => (record[key] !== undefined ? record[key] : '')));
+
+  // Force plain-text formatting before writing so Sheets doesn't
+  // auto-convert date-looking strings into real Date cells.
+  sheet.getRange(1, 1, Math.max(rows.length + 1, 1), headers.length).setNumberFormat('@');
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   if (rows.length > 0) sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
 

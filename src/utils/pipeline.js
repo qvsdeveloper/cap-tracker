@@ -9,7 +9,10 @@ export const PIPELINE_STEPS = [
 
 function daysSince(dateStr) {
   if (!dateStr) return null;
-  const then = new Date(dateStr + 'T00:00:00');
+  // Tolerate a full ISO timestamp (e.g. from a Sheets cell that got
+  // auto-converted to a Date) by keeping only the YYYY-MM-DD part.
+  const then = new Date(dateStr.slice(0, 10) + 'T00:00:00');
+  if (Number.isNaN(then.getTime())) return null;
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   return Math.floor((now - then) / (1000 * 60 * 60 * 24));
