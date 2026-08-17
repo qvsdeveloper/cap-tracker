@@ -9,6 +9,7 @@ import {
 } from '../utils/storage.js';
 import ConfirmModal from './ConfirmModal.jsx';
 import sheetsScriptSource from '../../scripts/google-sheets-sync.gs?raw';
+import { version as appVersion } from '../../package.json';
 
 export default function SettingsView({ settings, cadets, onSave, onClose, onImport }) {
   const [draft, setDraft] = useState({ ...settings });
@@ -125,6 +126,10 @@ export default function SettingsView({ settings, cadets, onSave, onClose, onImpo
       </div>
 
       <div style={{ padding: 16 }}>
+        <div style={{ textAlign: 'center', fontSize: 12, color: COLORS.textMuted, marginTop: -4, marginBottom: 16 }}>
+          v{appVersion}
+        </div>
+
         <Section title="📅 Squadron Schedule">
           <TextArea
             value={draft.squadronSchedule}
