@@ -32,4 +32,9 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm audit --audit-level=high
+      # Scoped to production dependencies: this is a static site with no
+      # server, so devDependency-only findings (build tooling like vite/
+      # esbuild) don't reach anything a user's browser talks to. Those are
+      # still tracked and patched via Dependabot as compatible versions
+      # become available -- see dependabot.yml.
+      - run: npm audit --omit=dev --audit-level=high
