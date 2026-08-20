@@ -90,7 +90,7 @@ export default function FormView({ cadet, settings, onSave, onCancel, onDelete }
     setPasteLoading(true);
     setPasteError('');
     try {
-      const raw = await generateEmail(buildExtractCadetPrompt(pasteText), settings?.anthropicApiKey);
+      const raw = await generateEmail(buildExtractCadetPrompt(pasteText), settings);
       const extracted = parseExtractedCadet(raw);
       setDraft((prev) => {
         const next = { ...prev };

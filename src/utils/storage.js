@@ -14,6 +14,10 @@ export const DEFAULT_SETTINGS = {
   sheetsUrl: '',
   sheetsToken: '',
   anthropicApiKey: '',
+  aiProvider: 'anthropic', // 'anthropic' | 'openai'
+  openaiBaseUrl: '',
+  openaiApiKey: '',
+  openaiModel: '',
 };
 
 export function makeId() {

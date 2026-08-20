@@ -168,14 +168,34 @@ export default function SettingsView({ settings, cadets, onSave, onClose, onImpo
           />
         </Section>
 
-        <Section title="🤖 Anthropic API Key">
-          <Input
-            label="API Key (used to generate emails, stored on this device only)"
-            value={draft.anthropicApiKey}
-            onChange={(v) => set('anthropicApiKey', v)}
-            type="password"
-            mono
-          />
+        <Section title="🤖 AI Provider">
+          <ProviderToggle value={draft.aiProvider || 'anthropic'} onChange={(v) => set('aiProvider', v)} />
+          {(draft.aiProvider || 'anthropic') === 'anthropic' ? (
+            <Input
+              label="Anthropic API Key (used to generate emails, stored on this device only)"
+              value={draft.anthropicApiKey}
+              onChange={(v) => set('anthropicApiKey', v)}
+              type="password"
+              mono
+            />
+          ) : (
+            <>
+              <Input
+                label="Base URL (e.g. https://api.openai.com/v1, or a local server URL)"
+                value={draft.openaiBaseUrl}
+                onChange={(v) => set('openaiBaseUrl', v)}
+                mono
+              />
+              <Input
+                label="API Key (stored on this device only; leave blank if not required)"
+                value={draft.openaiApiKey}
+                onChange={(v) => set('openaiApiKey', v)}
+                type="password"
+                mono
+              />
+              <Input label="Model" value={draft.openaiModel} onChange={(v) => set('openaiModel', v)} mono />
+            </>
+          )}
         </Section>
 
         <Section title="☁️ Google Sheets Sync">
@@ -303,6 +323,46 @@ function Section({ title, children }) {
       <div style={{ background: COLORS.card, borderRadius: 14, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         {children}
       </div>
+    </div>
+  );
+}
+
+const PROVIDER_OPTIONS = [
+  { key: 'anthropic', label: 'Claude (default)' },
+  { key: 'openai', label: 'Custom (OpenAI-compatible)' },
+];
+
+function ProviderToggle({ value, onChange }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        borderRadius: 10,
+        border: `1px solid ${COLORS.border}`,
+        overflow: 'hidden',
+        marginBottom: 12,
+      }}
+    >
+      {PROVIDER_OPTIONS.map((opt) => {
+        const active = value === opt.key;
+        return (
+          <button
+            key={opt.key}
+            onClick={() => onChange(opt.key)}
+            style={{
+              flex: 1,
+              padding: '10px 6px',
+              background: active ? COLORS.capBlue : '#fff',
+              border: 'none',
+              color: active ? '#fff' : COLORS.textMuted,
+              fontSize: 13,
+              fontWeight: active ? 700 : 500,
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

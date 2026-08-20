@@ -71,7 +71,7 @@ export default function DetailView({ cadet, settings, onBack, onEdit, onUpdate }
         type === 'welcome'
           ? buildWelcomeEmailPrompt(cadet, settings)
           : buildThirdNightEmailPrompt(cadet, settings);
-      const raw = await generateEmail(prompt, settings.anthropicApiKey);
+      const raw = await generateEmail(prompt, settings);
       const { subject, body } = parseGeneratedEmail(raw);
       setEmail({ type, loading: false, error: null, subject, body, cc });
       if (type === 'welcome') touch({ welcomeEmailSent: today() });

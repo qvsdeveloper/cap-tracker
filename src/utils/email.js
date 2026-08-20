@@ -74,7 +74,14 @@ export function buildThirdNightEmailPrompt(cadet, settings) {
   return lines.join('\n');
 }
 
-export async function generateEmail(prompt, apiKey) {
+export async function generateEmail(prompt, settings) {
+  if (settings?.aiProvider === 'openai') {
+    return generateEmailOpenAI(prompt, settings);
+  }
+  return generateEmailAnthropic(prompt, settings?.anthropicApiKey);
+}
+
+async function generateEmailAnthropic(prompt, apiKey) {
   if (!apiKey) {
     throw new Error('No Anthropic API key set. Add one in Settings.');
   }
@@ -98,6 +105,31 @@ export async function generateEmail(prompt, apiKey) {
   }
   const data = await res.json();
   const text = data.content?.map((block) => block.text).join('') || '';
+  return text.trim();
+}
+
+async function generateEmailOpenAI(prompt, settings) {
+  const { openaiBaseUrl, openaiApiKey, openaiModel } = settings || {};
+  if (!openaiBaseUrl || !openaiModel) {
+    throw new Error('OpenAI-compatible endpoint is missing a Base URL or Model. Add them in Settings.');
+  }
+  const res = await fetch(`${openaiBaseUrl.replace(/\/+$/, '')}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(openaiApiKey ? { Authorization: `Bearer ${openaiApiKey}` } : {}),
+    },
+    body: JSON.stringify({
+      model: openaiModel,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`OpenAI-compatible API error (${res.status}): ${text}`);
+  }
+  const data = await res.json();
+  const text = data.choices?.[0]?.message?.content || '';
   return text.trim();
 }
 
