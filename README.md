@@ -6,6 +6,12 @@ email → joined). Sender identity and squadron-specific details are entered
 in-app (Settings) rather than hardcoded, so the source stays
 organization-agnostic.
 
+This tool is built around a rolling, one-cadet-at-a-time pipeline — each
+prospective cadet moves through the stages independently on their own
+timeline. It fits a squadron that recruits continuously and individually
+well; it isn't designed for cohort-based recruiting, where a whole intake
+class moves through steps together on a shared schedule.
+
 ## Active List Sorting
 
 The Active list (`sortActiveCadets` in `src/utils/pipeline.js`) sorts cadets
