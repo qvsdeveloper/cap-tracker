@@ -6,6 +6,23 @@ email → joined). Sender identity and squadron-specific details are entered
 in-app (Settings) rather than hardcoded, so the source stays
 organization-agnostic.
 
+## Active List Sorting
+
+The Active list (`sortActiveCadets` in `src/utils/pipeline.js`) sorts cadets
+by priority tier first, then by most recent activity within a tier:
+
+1. Ready to join (3rd meeting done)
+2. Had 2+ meetings, 3rd Night Email not sent yet
+3. First contact made, Welcome Email not sent yet
+4. Had Meeting 1, but not yet in a higher tier
+5. First contact made, no meetings or emails yet
+6. No first contact yet
+
+Within the same tier, the cadet touched most recently (by
+`lastTouched`/meeting/email dates) is shown first, so whichever cadet needs
+the most urgent next action floats to the top. Archived cadets are listed
+separately, sorted by archive date (most recent first).
+
 ## Tech Stack & Style
 
 - **Plain JavaScript + JSX** — no TypeScript. ES modules, built with
