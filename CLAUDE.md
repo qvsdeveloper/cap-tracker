@@ -17,10 +17,20 @@ organization-agnostic.
   can load it directly; use the "Network:" URL Vite prints on startup).
 - `npm run build` — production build to `dist/`.
 - `npm run preview` — serve the built `dist/` locally.
-- `npm run deploy` — build then publish `dist/` to GitHub Pages via `gh-pages`.
+- `npm run deploy` — build then publish `dist/` to GitHub Pages via
+  `gh-pages`. Manual fallback only — see CI/CD below for the normal path.
 
 There is no test suite, linter, or formatter configured — consistency comes
 from following existing patterns, not tooling.
+
+## CI/CD
+
+Pushing to `main` automatically builds and deploys — see the README's
+CI/CD section for details. Workflows live in `.github/workflows/`:
+`ci.yml` (build + version-bump check), `deploy.yml` (GitHub Pages deploy),
+`codeql.yml`, `security.yml` (secret scan + dependency audit). Deploys go
+through the official `actions/deploy-pages` flow, not the `gh-pages`
+branch/npm script.
 
 ## Versioning
 
@@ -30,7 +40,8 @@ app behavior (Settings reads it directly via
 it, so it's the one source of truth — no separate changelog to keep in
 sync). Patch-bump (`1.1.0` → `1.1.1`) for fixes and small UX tweaks,
 minor-bump (`1.1.0` → `1.2.0`) for new features. Skip the bump only for
-changes with no user-visible effect (docs, comments, CI config).
+changes with no user-visible effect (docs, comments, CI config). CI
+enforces this automatically (see CI/CD above) for anything touching `src/`.
 
 ## Style
 

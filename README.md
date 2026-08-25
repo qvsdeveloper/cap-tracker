@@ -54,6 +54,31 @@ separately, sorted by archive date (most recent first).
 Overall it's intentionally lightweight and dependency-minimal — closer to a
 single developer's focused tool than a scaffolded enterprise React app.
 
+## CI/CD
+
+Pushes to `main` are automatically checked and deployed via GitHub Actions:
+
+- **CI** (`.github/workflows/ci.yml`) — runs on every push/PR to `main`.
+  Verifies `npm run build` succeeds, and enforces that `package.json`'s
+  `version` is bumped whenever `src/` changes (see Versioning below).
+- **Deploy** (`.github/workflows/deploy.yml`) — runs on push to `main`.
+  Builds the app and publishes `dist/` to GitHub Pages via the official
+  `actions/deploy-pages` flow. No manual step required.
+- **CodeQL** and **Security** (`codeql.yml`, `security.yml`) — static
+  analysis, secret scanning, and dependency auditing on every push/PR.
+
+`npm run deploy` (build + `gh-pages -d dist`) still works as a manual
+fallback if needed, but isn't part of the normal workflow anymore.
+
+## Versioning
+
+Bump the `version` field in `package.json` with every commit that changes
+app behavior — Settings reads it directly and displays it, so it's the one
+source of truth. CI enforces this: a PR (or push to `main`) that changes
+`src/` without bumping the version fails the `version-check` job. Patch-bump
+for fixes/small tweaks, minor-bump for new features. Docs-only or
+config-only changes are exempt.
+
 ## Google Sheets Sync
 
 The app can read/write cadet records from a Google Sheet instead of (well, in
