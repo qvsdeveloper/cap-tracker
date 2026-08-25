@@ -21,20 +21,25 @@ export default function Header({ activeCount, syncStatus, onOpenSettings, onSync
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <button
           onClick={onSyncClick}
-          title={`${syncStatus.label} — tap to pull latest from Google Sheets`}
+          title={`${syncStatus.label} — tap to sync now`}
           aria-label="Sync"
           disabled={syncStatus.syncing}
           style={{
             background: 'none',
             border: 'none',
             color: '#fff',
-            fontSize: 18,
-            padding: 4,
+            fontSize: 13,
+            fontWeight: 600,
+            padding: '4px 6px',
             lineHeight: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
             opacity: syncStatus.syncing ? 0.6 : 1,
           }}
         >
-          {syncStatus.icon}
+          <span style={{ fontSize: 16 }}>{syncStatus.icon}</span>
+          <span>{syncStatus.shortLabel}</span>
         </button>
         <button
           onClick={onOpenSettings}

@@ -6,7 +6,7 @@ import ListView from './components/ListView.jsx';
 import DetailView from './components/DetailView.jsx';
 import FormView from './components/FormView.jsx';
 import SettingsView from './components/SettingsView.jsx';
-import ConfirmModal from './components/ConfirmModal.jsx';
+import SyncDiffModal from './components/SyncDiffModal.jsx';
 import {
   loadSettings,
   saveSettings as persistSettings,
@@ -15,6 +15,7 @@ import {
   saveCadetsToSheets,
   fetchFromSheets,
 } from './utils/storage.js';
+import { diffCadetLists } from './utils/syncDiff.js';
 
 export default function App() {
   const [settings, setSettings] = useState(loadSettings());
@@ -23,8 +24,10 @@ export default function App() {
   const [view, setView] = useState('list');
   const [tab, setTab] = useState('active');
   const [selectedId, setSelectedId] = useState(null);
-  const [syncStatus, setSyncStatus] = useState({ icon: '💾', label: 'Local only', syncing: false });
-  const [syncConflict, setSyncConflict] = useState(null);
+  const [syncStatus, setSyncStatus] = useState({ icon: '💾', shortLabel: 'Saved', label: 'Local only', syncing: false });
+  // { remote, diffs } — a pending set of remote changes the user needs to review
+  // before they're either accepted (overwrite local) or dismissed (keep local).
+  const [pendingSync, setPendingSync] = useState(null);
 
   const hasLoaded = useRef(false);
   // JSON snapshot of the cadet list as last known to match the Sheet.
@@ -46,8 +49,8 @@ export default function App() {
       }
       setSyncStatus(
         source === 'sheets' || source === 'local-to-sheets'
-          ? { icon: '☁️', label: 'Synced with Google Sheets', syncing: false }
-          : { icon: '💾', label: 'Local only', syncing: false }
+          ? { icon: '☁️', shortLabel: 'Synced', label: 'Synced with Google Sheets', syncing: false }
+          : { icon: '💾', shortLabel: 'Saved', label: 'Local only', syncing: false }
       );
     })();
     return () => {
@@ -70,63 +73,91 @@ export default function App() {
   // overwriting it, so a stale device (e.g. one that's been open a while on
   // another phone) can't silently clobber changes made elsewhere.
   async function syncCadetsToSheets(currentCadets) {
-    setSyncStatus({ icon: '☁️', label: 'Syncing…', syncing: true });
+    setSyncStatus({ icon: '☁️', shortLabel: 'Syncing…', label: 'Syncing…', syncing: true });
     try {
       const remote = await fetchFromSheets(settings.sheetsUrl, settings.sheetsToken);
       const remoteJson = JSON.stringify(remote);
       const baseline = lastSyncedSnapshotRef.current;
       if (baseline !== null && remoteJson !== baseline) {
-        setSyncConflict({ remote });
-        setSyncStatus({ icon: '⚠️', label: 'Sync paused — conflict detected', syncing: false });
+        setPendingSync({ remote, diffs: diffCadetLists(currentCadets, remote) });
+        setSyncStatus({ icon: '⚠️', shortLabel: 'Review', label: 'Sync paused — conflict detected', syncing: false });
         return;
       }
       const result = await saveCadetsToSheets(currentCadets, settings);
       if (result.ok) {
         lastSyncedSnapshotRef.current = JSON.stringify(currentCadets);
-        setSyncStatus({ icon: '☁️', label: 'Synced with Google Sheets', syncing: false });
+        setSyncStatus({ icon: '☁️', shortLabel: 'Synced', label: 'Synced with Google Sheets', syncing: false });
       } else {
-        setSyncStatus({ icon: '⚠️', label: `Sync failed: ${result.error}`, syncing: false });
+        setSyncStatus({ icon: '⚠️', shortLabel: 'Failed', label: `Sync failed: ${result.error}`, syncing: false });
       }
     } catch (err) {
-      setSyncStatus({ icon: '⚠️', label: `Sync failed: ${err.message}`, syncing: false });
+      setSyncStatus({ icon: '⚠️', shortLabel: 'Failed', label: `Sync failed: ${err.message}`, syncing: false });
     }
   }
 
-  async function handlePullFromSheets() {
+  // Manual "Sync Now": pushes any unpushed local changes and checks for
+  // remote changes, in one action — unlike the autosave path above, this
+  // also retries a push that previously failed or was left paused by an
+  // unresolved conflict.
+  async function handleSyncNow() {
     if (!settings.sheetsUrl) {
       setView('settings');
       return;
     }
-    setSyncStatus({ icon: '☁️', label: 'Refreshing…', syncing: true });
+    setSyncStatus({ icon: '☁️', shortLabel: 'Syncing…', label: 'Syncing…', syncing: true });
     try {
       const remote = await fetchFromSheets(settings.sheetsUrl, settings.sheetsToken);
-      setCadets(remote);
-      lastSyncedSnapshotRef.current = JSON.stringify(remote);
-      setSyncStatus({ icon: '☁️', label: 'Synced with Google Sheets', syncing: false });
+      const remoteJson = JSON.stringify(remote);
+      const baseline = lastSyncedSnapshotRef.current;
+      const localDirty = JSON.stringify(cadets) !== baseline;
+      const remoteDirty = baseline !== null && remoteJson !== baseline;
+
+      if (remoteDirty) {
+        // Remote changed since our baseline — always show the diff for
+        // review rather than silently picking a side.
+        setPendingSync({ remote, diffs: diffCadetLists(cadets, remote) });
+        setSyncStatus({ icon: '⚠️', shortLabel: 'Review', label: 'Changes to review', syncing: false });
+        return;
+      }
+
+      if (localDirty || baseline === null) {
+        // Remote matches our baseline (or we have none yet) and local has
+        // unpushed changes — safe to push straight up.
+        const result = await saveCadetsToSheets(cadets, settings);
+        if (result.ok) {
+          lastSyncedSnapshotRef.current = JSON.stringify(cadets);
+          setSyncStatus({ icon: '☁️', shortLabel: 'Synced', label: 'Synced with Google Sheets', syncing: false });
+        } else {
+          setSyncStatus({ icon: '⚠️', shortLabel: 'Failed', label: `Sync failed: ${result.error}`, syncing: false });
+        }
+        return;
+      }
+
+      setSyncStatus({ icon: '☁️', shortLabel: 'Synced', label: 'Synced with Google Sheets', syncing: false });
     } catch (err) {
-      setSyncStatus({ icon: '⚠️', label: `Refresh failed: ${err.message}`, syncing: false });
+      setSyncStatus({ icon: '⚠️', shortLabel: 'Failed', label: `Sync failed: ${err.message}`, syncing: false });
     }
   }
 
-  async function handleKeepMyChanges() {
+  async function handleAcceptRemoteChanges() {
+    const remote = pendingSync.remote;
+    setPendingSync(null);
+    setCadets(remote);
+    lastSyncedSnapshotRef.current = JSON.stringify(remote);
+    setSyncStatus({ icon: '☁️', shortLabel: 'Synced', label: 'Synced with Google Sheets', syncing: false });
+  }
+
+  async function handleKeepLocalChanges() {
     const toSave = cadets;
-    setSyncConflict(null);
-    setSyncStatus({ icon: '☁️', label: 'Syncing…', syncing: true });
+    setPendingSync(null);
+    setSyncStatus({ icon: '☁️', shortLabel: 'Syncing…', label: 'Syncing…', syncing: true });
     const result = await saveCadetsToSheets(toSave, settings);
     if (result.ok) {
       lastSyncedSnapshotRef.current = JSON.stringify(toSave);
-      setSyncStatus({ icon: '☁️', label: 'Synced with Google Sheets', syncing: false });
+      setSyncStatus({ icon: '☁️', shortLabel: 'Synced', label: 'Synced with Google Sheets', syncing: false });
     } else {
-      setSyncStatus({ icon: '⚠️', label: `Sync failed: ${result.error}`, syncing: false });
+      setSyncStatus({ icon: '⚠️', shortLabel: 'Failed', label: `Sync failed: ${result.error}`, syncing: false });
     }
-  }
-
-  function handleLoadTheirChanges() {
-    const remote = syncConflict.remote;
-    setSyncConflict(null);
-    setCadets(remote);
-    lastSyncedSnapshotRef.current = JSON.stringify(remote);
-    setSyncStatus({ icon: '☁️', label: 'Synced with Google Sheets', syncing: false });
   }
 
   function upsertCadet(cadet) {
@@ -179,19 +210,19 @@ export default function App() {
         if (remote.length > 0) {
           setCadets(remote);
           lastSyncedSnapshotRef.current = JSON.stringify(remote);
-          setSyncStatus({ icon: '☁️', label: 'Synced with Google Sheets', syncing: false });
+          setSyncStatus({ icon: '☁️', shortLabel: 'Synced', label: 'Synced with Google Sheets', syncing: false });
         } else {
           // Sheet reachable but empty: push what we have up to it.
           const result = await saveCadetsToSheets(cadets, newSettings);
           if (result.ok) lastSyncedSnapshotRef.current = JSON.stringify(cadets);
           setSyncStatus(
             result.ok
-              ? { icon: '☁️', label: 'Synced with Google Sheets', syncing: false }
-              : { icon: '⚠️', label: `Sync failed: ${result.error}`, syncing: false }
+              ? { icon: '☁️', shortLabel: 'Synced', label: 'Synced with Google Sheets', syncing: false }
+              : { icon: '⚠️', shortLabel: 'Failed', label: `Sync failed: ${result.error}`, syncing: false }
           );
         }
       } catch (err) {
-        setSyncStatus({ icon: '⚠️', label: `Sync failed: ${err.message}`, syncing: false });
+        setSyncStatus({ icon: '⚠️', shortLabel: 'Failed', label: `Sync failed: ${err.message}`, syncing: false });
       }
     }
   }
@@ -234,7 +265,7 @@ export default function App() {
               activeCount={activeCount}
               syncStatus={syncStatus}
               onOpenSettings={() => setView('settings')}
-              onSyncClick={handlePullFromSheets}
+              onSyncClick={handleSyncNow}
             />
             <TabBar tab={tab} onChange={setTab} />
           </div>
@@ -277,15 +308,11 @@ export default function App() {
         />
       )}
 
-      <ConfirmModal
-        open={!!syncConflict}
-        title="Sync conflict"
-        subtitle="The Google Sheet changed since this device last synced — probably an edit from another device. Loading the other version will discard the changes you just made here."
-        confirmLabel="Keep My Changes (Overwrite)"
-        cancelLabel="Load Their Changes"
-        tone="danger"
-        onConfirm={handleKeepMyChanges}
-        onCancel={handleLoadTheirChanges}
+      <SyncDiffModal
+        open={!!pendingSync}
+        diffs={pendingSync?.diffs || []}
+        onAccept={handleAcceptRemoteChanges}
+        onKeepLocal={handleKeepLocalChanges}
       />
     </div>
   );
