@@ -5,6 +5,16 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # vite 8 requires @vitejs/plugin-react 6+, which in turn requires
+      # vite 8 -- and vite-plugin-pwa@0.21.x only supports vite ^3-^6, so
+      # neither can be bumped alone without breaking `npm ci`. Re-enable
+      # once vite-plugin-pwa ships a vite-8-compatible release, then do a
+      # coordinated bump of all three together.
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitejs/plugin-react"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
