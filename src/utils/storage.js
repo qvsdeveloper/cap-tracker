@@ -108,7 +108,11 @@ export async function fetchFromSheets(sheetsUrl, token) {
   if (!res.ok) throw new Error(`Sheets GET failed: ${res.status}`);
   const data = await res.json();
   if (data && data.error) throw new Error(data.error);
-  return Array.isArray(data) ? data : [];
+  // Sanitize dates here (rather than only in loadCadets/applyMigrations) so
+  // every caller -- sync conflict checks, manual sync, settings URL change --
+  // compares against the same truncated YYYY-MM-DD format local cadets use,
+  // instead of Google's auto-converted ISO timestamps looking like a diff.
+  return Array.isArray(data) ? data.map(sanitizeCadetDates) : [];
 }
 
 export async function postToSheets(sheetsUrl, token, data) {
