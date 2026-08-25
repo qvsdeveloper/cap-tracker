@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+  version-check:
+    name: Check version bump
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compare package.json version against base
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'HEAD~1' }}
+        run: |
+          if ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1; then
+            echo "No base commit to compare against (e.g. first commit on main) — skipping."
+            exit 0
+          fi
+
+          if git diff --quiet "$BASE_REF" HEAD -- src/; then
+            echo "No changes under src/ — version bump not required."
+            exit 0
+          fi
+
+          if git diff --quiet "$BASE_REF" HEAD -- package.json; then
+            echo "src/ changed but package.json did not — bump the version (see CLAUDE.md)."
+            exit 1
+          fi
+
+          BASE_VERSION=$(git show "$BASE_REF:package.json" | node -pe 'JSON.parse(require("fs").readFileSync(0)).version' 2>/dev/null || echo "")
+          HEAD_VERSION=$(node -pe 'require("./package.json").version')
+          if [ "$BASE_VERSION" = "$HEAD_VERSION" ]; then
+            echo "package.json changed but version ($HEAD_VERSION) is unchanged from base — bump it (see CLAUDE.md)."
+            exit 1
+          fi
+
+          echo "Version bumped: $BASE_VERSION -> $HEAD_VERSION"
