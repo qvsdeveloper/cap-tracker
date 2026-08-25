@@ -22,6 +22,16 @@ organization-agnostic.
 There is no test suite, linter, or formatter configured — consistency comes
 from following existing patterns, not tooling.
 
+## Versioning
+
+Bump the `version` field in `package.json` with every commit that changes
+app behavior (Settings reads it directly via
+`import { version as appVersion } from '../../package.json'` and displays
+it, so it's the one source of truth — no separate changelog to keep in
+sync). Patch-bump (`1.1.0` → `1.1.1`) for fixes and small UX tweaks,
+minor-bump (`1.1.0` → `1.2.0`) for new features. Skip the bump only for
+changes with no user-visible effect (docs, comments, CI config).
+
 ## Style
 
 - Plain JavaScript + JSX, no TypeScript.
