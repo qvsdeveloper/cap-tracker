@@ -145,7 +145,7 @@ export default function DetailView({ cadet, settings, onBack, onEdit, onUpdate }
           <Field
             label={cadet.cadetPhone ? "Cadet's Phone" : "Parent's Phone"}
             value={cadet.parentPhone}
-            href={cadet.parentPhone ? `tel:${cadet.parentPhone.replace(/[^\d+]/g, '')}` : null}
+            href={cadet.parentPhone ? `tel:${String(cadet.parentPhone).replace(/[^\d+]/g, '')}` : null}
           />
           <Field
             label={cadet.cadetEmail ? "Cadet's Email" : "Parent's Email"}
